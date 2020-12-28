@@ -24,6 +24,8 @@ import (
 	"google.golang.org/api/calendar/v3"
 )
 
+const layoutISO = "2006-01-02"
+
 // insertCmd represents the insert command
 var insertCmd = &cobra.Command{
 	Use:   "insert",
@@ -48,14 +50,32 @@ var insertCmd = &cobra.Command{
 		if err != nil {
 			log.Fatalf("Unable to get value of title flag: %v", err)
 		}
-		date := time.Now().Format("2006-1-02")
+
+		now := time.Now().Format(layoutISO)
+
+		startDate, err := cmd.Flags().GetString("start-date")
+		if err != nil {
+			log.Fatalf("Unable to get value of start-date flag: %v", err)
+		}
+		if startDate == "" {
+			startDate = now
+		}
+
+		endDate, err := cmd.Flags().GetString("end-date")
+		if err != nil {
+			log.Fatalf("Unable to get value of end-date flag: %v", err)
+		}
+		if endDate == "" {
+			endDate = now
+		}
+
 		event := &calendar.Event{
 			Summary: eventTitle,
 			Start: &calendar.EventDateTime{
-				Date: date,
+				Date: startDate,
 			},
 			End: &calendar.EventDateTime{
-				Date: date,
+				Date: endDate,
 			},
 		}
 		event, err = srv.Events.Insert(calendarID, event).Do()
@@ -67,8 +87,12 @@ var insertCmd = &cobra.Command{
 }
 
 func init() {
+	now := time.Now().Format(layoutISO)
+
 	eventCmd.AddCommand(insertCmd)
 	insertCmd.Flags().StringP("calendar", "c", "", "Calendar summary")
 	insertCmd.Flags().StringP("title", "t", "", "Event title")
 	insertCmd.MarkFlagRequired("title")
+	insertCmd.Flags().StringP("start-date", "s", now, "Start date (inclusive)")
+	insertCmd.Flags().StringP("end-date", "e", now, "End date (exclusive)")
 }
